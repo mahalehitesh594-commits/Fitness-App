@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Go Fit</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+
+  <body>
+    <div class="phone-shell">
+      <header class="topbar">
+        <div class="time" id="currentTime">23:02</div>
+        <div class="status-icons" aria-hidden="true">
+          <span>◔</span><span>◌</span><span>▣</span>
+        </div>
+      </header>
+
+      <div class="header-row">
+        <div class="brand-wrap">
+          <h1>Go Fit</h1>
+          <p>Preview</p>
+        </div>
+        <div class="actions">
+          <button class="icon-btn" type="button">↗</button
+          ><button class="icon-btn" type="button">↻</button
+          ><button class="icon-btn dots" type="button">⋮</button>
+        </div>
+      </div>
+
+      <main class="card input-page" id="inputPage">
+        <h2>Who Are Avengers</h2>
+        <p class="subtitle">Check Are You Worthy</p>
+
+        <input
+          type="text"
+          id="name"
+          placeholder="What's Your Name"
+          autocomplete="name"
+        />
+        <select id="sex" aria-label="Sex">
+          <option value="">Select Sex</option>
+          <option value="male">Male</option>
+          <option value="female">Female</option>
+        </select>
+        <input type="number" id="age" placeholder="Age (years)" min="1" />
+        <input
+          type="number"
+          id="weight"
+          placeholder="Weight (kg)"
+          min="1"
+          step="0.1"
+        />
+        <input
+          type="number"
+          id="height"
+          placeholder="Height (cm)"
+          min="1"
+          step="0.1"
+        />
+        <input
+          type="number"
+          id="waist"
+          placeholder="Waist circumference (cm)"
+          min="1"
+          step="0.1"
+        />
+        <input
+          type="number"
+          id="neck"
+          placeholder="Neck circumference (cm)"
+          min="1"
+          step="0.1"
+        />
+        <input
+          type="number"
+          id="hip"
+          placeholder="Hip circumference (cm, women only)"
+          min="1"
+          step="0.1"
+        />
+        <p class="error" id="error" role="alert"></p>
+        <button id="calculateBtn" type="button">Calculate</button>
+      </main>
+
+      <main class="card results-page" id="resultsPage" hidden>
+        <button class="back-btn" id="backBtn" type="button">← Back</button>
+        <h2 id="welcome">Your Results</h2>
+        <p class="subtitle">Here is your fitness summary</p>
+        <div class="result-grid">
+          <article class="metric-card">
+            <div class="circle" id="bmiCircle">
+              <div><strong id="bmiValue">--</strong><span>BMI</span></div>
+            </div>
+            <h3>Body Mass Index</h3>
+            <p id="bmiStatus">--</p>
+          </article>
+          <article class="metric-card">
+            <div class="circle" id="bmrCircle">
+              <div><strong id="bmrValue">--</strong><span>kcal/day</span></div>
+            </div>
+            <h3>Basal Metabolic Rate</h3>
+            <p>Your daily energy need at rest</p>
+          </article>
+          <article class="metric-card">
+            <div class="circle" id="bodyfatCircle">
+              <div>
+                <strong id="bodyfatValue">--</strong><span>Body Fat</span>
+              </div>
+            </div>
+            <h3>Body Fat Percentage</h3>
+            <p id="bodyfatStatus">--</p>
+          </article>
+        </div>
+        <button class="secondary-btn" id="editBtn" type="button">
+          Edit Details
+        </button>
+      </main>
+    </div>
+
+    <script>
+      const $ = (id) => document.getElementById(id);
+      const inputPage = $("inputPage");
+      const resultsPage = $("resultsPage");
+
+      $("calculateBtn").addEventListener("click", () => {
+        const name = $("name").value.trim();
+        const sex = $("sex").value;
+        const age = Number($("age").value),
+          weight = Number($("weight").value);
+        const height = Number($("height").value),
+          waist = Number($("waist").value);
+        const neck = Number($("neck").value),
+          hip = Number($("hip").value);
+        const valid =
+          name &&
+          sex &&
+          [age, weight, height, waist, neck].every((value) => value > 0) &&
+          (sex !== "female" || hip > 0) &&
+          (sex === "female" ? waist + hip > neck : waist > neck);
+
+        if (!valid) {
+          $("error").textContent =
+            "Please complete all fields with valid measurements. Waist must be larger than neck.";
+          return;
+        }
+        $("error").textContent = "";
+
+        const bmi = weight / (height / 100) ** 2;
+        const bmr =
+          10 * weight + 6.25 * height - 5 * age + (sex === "male" ? 5 : -161);
+        const bodyFat =
+          sex === "male"
+            ? 495 /
+                (1.0324 -
+                  0.19077 * Math.log10(waist - neck) +
+                  0.15456 * Math.log10(height)) -
+              450
+            : 495 /
+                (1.29579 -
+                  0.35004 * Math.log10(waist + hip - neck) +
+                  0.221 * Math.log10(height)) -
+              450;
+
+        $("welcome").textContent = `${name}'s Results`;
+        $("bmiValue").textContent = bmi.toFixed(1);
+        $("bmrValue").textContent = Math.round(bmr);
+        $("bodyfatValue").textContent = `${bodyFat.toFixed(1)}%`;
+        $("bmiStatus").textContent =
+          bmi < 18.5
+            ? "Underweight"
+            : bmi < 25
+              ? "Healthy range"
+              : bmi < 30
+                ? "Overweight"
+                : "Obesity range";
+        $("bodyfatStatus").textContent =
+          `${bodyFat < (sex === "male" ? 25 : 32) ? "Within a healthy range" : "Above the typical healthy range"}`;
+
+        inputPage.hidden = true;
+        resultsPage.hidden = false;
+        requestAnimationFrame(() => {
+          $("bmiCircle").style.setProperty(
+            "--progress",
+            `${Math.min(Math.max((bmi / 40) * 100, 8), 100)}%`,
+          );
+          $("bmrCircle").style.setProperty(
+            "--progress",
+            `${Math.min(Math.max((bmr / 3000) * 100, 8), 100)}%`,
+          );
+          $("bodyfatCircle").style.setProperty(
+            "--progress",
+            `${Math.min(Math.max((bodyFat / 50) * 100, 8), 100)}%`,
+          );
+        });
+      });
+
+      function showForm() {
+        resultsPage.hidden = true;
+        inputPage.hidden = false;
+      }
+      $("backBtn").addEventListener("click", showForm);
+      $("editBtn").addEventListener("click", showForm);
+    </script>
+  </body>
+</html>
